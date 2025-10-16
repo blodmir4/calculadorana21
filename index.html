@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIR4 - Sistema de Participação Clan NA21</title>
+    <meta name="description" content="Sistema de cálculo de participação ponderada para eventos PvP e atividades do clan NA21">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --background: 240 10% 4%;
+            --foreground: 210 40% 98%;
+            --card: 240 8% 8%;
+            --card-foreground: 210 40% 98%;
+            --primary: 263 70% 60%;
+            --primary-foreground: 210 40% 98%;
+            --primary-glow: 263 90% 70%;
+            --secondary: 220 70% 55%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 240 5% 15%;
+            --muted-foreground: 215 20% 65%;
+            --accent: 280 60% 50%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 50%;
+            --success: 142 70% 45%;
+            --warning: 38 92% 50%;
+            --border: 240 8% 18%;
+            --input: 240 8% 15%;
+            --radius: 0.75rem;
+        }
+
+        body {
+            background: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        header {
+            border-bottom: 1px solid hsl(var(--border));
+            background: hsl(var(--card) / 0.5);
+            backdrop-filter: blur(12px);
+        }
+
+        .header-content {
+            padding: 1.5rem 0;
+        }
+
+        .header-title {
+            font-size: 2.25rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-subtitle {
+            font-size: 1.25rem;
+            color: hsl(var(--foreground));
+        }
+
+        .header-description {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+            margin-top: 0.25rem;
+        }
+
+        main {
+            padding: 2rem 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, hsl(var(--card)), hsl(240 8% 12%));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 0 20px hsl(263 70% 60% / 0.3);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .section-description {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+            margin-bottom: 1.5rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .grid-cols-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .grid-cols-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .input-hint {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        input[type="number"] {
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            color: hsl(var(--foreground));
+            font-size: 0.875rem;
+            width: 100%;
+        }
+
+        input[type="number"]:focus {
+            outline: 2px solid hsl(var(--primary));
+            outline-offset: 2px;
+        }
+
+        .result-card {
+            padding: 1.5rem;
+            background: hsl(var(--primary) / 0.1);
+            border-radius: 0.5rem;
+            border: 1px solid hsl(var(--primary) / 0.2);
+        }
+
+        .result-label {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+            margin-bottom: 0.5rem;
+        }
+
+        .result-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: hsl(var(--primary));
+        }
+
+        .reward-tier {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius);
+            border: 2px solid;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .reward-tier:hover {
+            transform: scale(1.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .reward-tier-gold {
+            border-color: rgb(234 179 8 / 0.3);
+            background: rgb(234 179 8 / 0.1);
+        }
+
+        .reward-tier-blue {
+            border-color: rgb(59 130 246 / 0.3);
+            background: rgb(59 130 246 / 0.1);
+        }
+
+        .reward-tier-purple {
+            border-color: rgb(168 85 247 / 0.3);
+            background: rgb(168 85 247 / 0.1);
+        }
+
+        .icon-gold { color: rgb(250 204 21); }
+        .icon-blue { color: rgb(96 165 250); }
+        .icon-purple { color: rgb(192 132 252); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: hsl(var(--card));
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid hsl(var(--border));
+        }
+
+        th {
+            background: hsl(var(--card));
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        td {
+            font-size: 0.875rem;
+        }
+
+        tr:hover td {
+            background: hsl(var(--card) / 0.5);
+        }
+
+        .percentage-high { color: hsl(var(--success)); }
+        .percentage-medium { color: hsl(var(--warning)); }
+        .percentage-low { color: hsl(var(--destructive)); }
+
+        .search-container {
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.5rem;
+            color: hsl(var(--foreground));
+            font-size: 0.875rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: hsl(var(--muted-foreground));
+        }
+
+        .player-avatar {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.875rem;
+            margin-right: 0.75rem;
+        }
+
+        .info-box {
+            padding: 1rem;
+            background: hsl(var(--primary) / 0.05);
+            border-radius: 0.5rem;
+            border: 1px solid hsl(var(--primary) / 0.2);
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        .info-box ul {
+            list-style: disc;
+            padding-left: 1.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .weights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .weight-item {
+            text-align: center;
+        }
+
+        .weight-label {
+            color: hsl(var(--muted-foreground));
+            font-size: 0.875rem;
+        }
+
+        .weight-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: hsl(var(--primary));
+            margin: 0.25rem 0;
+        }
+
+        .weight-note {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        @media (max-width: 768px) {
+            .grid-cols-4, .grid-cols-3 {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-title {
+                font-size: 1.75rem;
+            }
+            
+            table {
+                font-size: 0.75rem;
+            }
+            
+            th, td {
+                padding: 0.5rem;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .icon-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .reward-content {
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .reward-range {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .reward-subtitle {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .reward-divider {
+            padding-top: 0.75rem;
+            border-top: 1px solid hsl(var(--border));
+            margin-top: 0.75rem;
+        }
+
+        .reward-label {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+            margin-bottom: 0.25rem;
+        }
+
+        .reward-amount {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .corner-decoration {
+            position: absolute;
+            width: 5rem;
+            height: 5rem;
+            opacity: 0.2;
+        }
+
+        .corner-top-right {
+            top: 0;
+            right: 0;
+            background: linear-gradient(to bottom left, hsl(var(--primary) / 0.2), transparent);
+            border-radius: 0 0 0 100%;
+        }
+
+        .corner-bottom-left {
+            bottom: 0;
+            left: 0;
+            background: linear-gradient(to top right, hsl(var(--secondary) / 0.2), transparent);
+            border-radius: 0 100% 0 0;
+        }
+
+        .language-selector {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .language-btn {
+            background: transparent;
+            border: 1px solid hsl(var(--border));
+            color: hsl(var(--foreground));
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .language-btn:hover {
+            background: hsl(var(--primary) / 0.1);
+            border-color: hsl(var(--primary));
+        }
+
+        .language-btn.active {
+            background: hsl(var(--primary));
+            border-color: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+        }
+    </style>
+</head>
+<body>
+    <!-- Language Selector -->
+    <div class="language-selector">
+        <button class="language-btn active" onclick="changeLanguage('pt')" data-lang="pt">🇧🇷 PT</button>
+        <button class="language-btn" onclick="changeLanguage('es')" data-lang="es">🇪🇸 ES</button>
+        <button class="language-btn" onclick="changeLanguage('en')" data-lang="en">🇺🇸 EN</button>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1 class="header-title">MIR4</h1>
+                <h2 class="header-subtitle" data-i18n="header.subtitle">Calculadora - Clan NA21</h2>
+                <p class="header-description" data-i18n="header.description">Acompanhe a participação dos membros do clan em todos os eventos e atividades</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Real-time Calculator -->
+        <div class="stat-card">
+            <div class="section-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="8" x2="16" y1="10" y2="10"/><line x1="8" x2="16" y1="14" y2="14"/><line x1="8" x2="16" y1="18" y2="18"/></svg>
+                <span data-i18n="calculator.title">Calculadora em Tempo Real</span>
+            </div>
+            <p class="section-description" data-i18n="calculator.description">Calcule sua participação ponderada inserindo suas porcentagens em cada evento</p>
+
+            <div class="grid grid-cols-4" style="margin-bottom: 1.5rem;">
+                <div class="input-group">
+                    <label class="input-label">PVP Server <span style="color: hsl(var(--muted-foreground)); font-size: 0.75rem;">(25%)</span></label>
+                    <input type="number" id="pvpServer" min="0" max="7" value="0" placeholder="0-7x">
+                    <div class="input-hint">
+                        <p>Mínimo: 1x/dia (7x/semana)</p>
+                        <p style="color: hsl(var(--primary));">• 7x/semana = 100%</p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">PVP Torre <span style="color: hsl(var(--muted-foreground)); font-size: 0.75rem;">(10%)</span></label>
+                    <input type="number" id="pvpTorre" min="0" max="3" value="0" placeholder="0-3x">
+                    <div class="input-hint">
+                        <p>2-3x/semana se houver</p>
+                        <p style="color: hsl(var(--primary));">• 3x/semana = 100%</p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">PVP Cima <span style="color: hsl(var(--muted-foreground)); font-size: 0.75rem;">(12%)</span></label>
+                    <input type="number" id="pvpCima" min="0" max="7" value="0" placeholder="0-7x">
+                    <div class="input-hint">
+                        <p>Quando houver PVP</p>
+                        <p style="color: hsl(var(--primary));">• 7x/semana = 100%</p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">PVP Quadrado <span style="color: hsl(var(--muted-foreground)); font-size: 0.75rem;">(12%)</span></label>
+                    <input type="number" id="pvpQuadrado" min="0" max="7" value="0" placeholder="0-7x">
+                    <div class="input-hint">
+                        <p>Quando houver PVP</p>
+                        <p style="color: hsl(var(--primary));">• 7x/semana = 100%</p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">War Vale <span style="color: hsl(var(--muted-foreground)); font-size: 0.75rem;">(20%)</span></label>
+                    <input type="number" id="warVale" min="0" max="1" value="0" placeholder="0-1x">
+                    <div class="input-hint">
+                        <p>Mínimo: 1x/semana</p>
+                        <p style="color: hsl(var(--primary));">• 1x/semana = 100%</p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Defesa Cristal <span style="color: hsl(var(--muted-foreground)); font-size: 0.75rem;">(15%)</span></label>
+                    <input type="number" id="defesaCristal" min="0" max="1" value="0" placeholder="0-1x">
+                    <div class="input-hint">
+                        <p>Mínimo: 1x/semana</p>
+                        <p style="color: hsl(var(--primary));">• 1x/semana = 100%</p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Scout Ally <span style="color: hsl(var(--muted-foreground)); font-size: 0.75rem;">(3%)</span></label>
+                    <input type="number" id="scoutAlly" min="0" max="7" value="0" placeholder="0-7x">
+                    <div class="input-hint">
+                        <p>1x/dia com inimigos</p>
+                        <p style="color: hsl(var(--primary));">• 7x/semana = 100%</p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">PVE <span style="color: hsl(var(--muted-foreground)); font-size: 0.75rem;">(3%)</span></label>
+                    <input type="number" id="pve" min="0" max="7" value="0" placeholder="0-7x">
+                    <div class="input-hint">
+                        <p>Atividades PVE</p>
+                        <p style="color: hsl(var(--primary));">• 7x/semana = 100%</p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">⭐ Doações Recurso do Clã ⭐ <span style="color: hsl(var(--muted-foreground)); font-size: 0.75rem;">(Bônus)</span></label>
+                    <input type="number" id="doacaoDias" min="0" max="7" value="0" placeholder="0-7 dias" style="background: hsl(var(--accent) / 0.2); border-color: hsl(var(--accent) / 0.5);">
+                    <div class="input-hint" style="background: hsl(var(--accent) / 0.1); padding: 0.5rem; border-radius: 0.25rem;">
+                        <p style="font-weight: 600; color: hsl(var(--accent));">Sistema de Bônus:</p>
+                        <p style="color: hsl(var(--primary));">• 7 dias = 25%</p>
+                        <p style="color: hsl(var(--secondary));">• 6 dias = 20%</p>
+                        <p>• 5 dias = 15%</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-card">
+                <div class="result-label" data-i18n="calculator.result">Participação Ponderada Total</div>
+                <div class="result-value" id="totalParticipation">0%</div>
+            </div>
+        </div>
+
+        <!-- Rewards Section -->
+        <div class="stat-card">
+            <div class="section-title" style="justify-content: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+                <h3 style="font-size: 1.875rem; background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary))); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;" data-i18n="rewards.title">Sistema de Recompensas</h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--secondary))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+            </div>
+
+            <p style="text-align: center; color: hsl(var(--muted-foreground)); margin-bottom: 2rem; max-width: 48rem; margin-left: auto; margin-right: auto;" data-i18n="rewards.description">
+                Recompensas semanais baseadas na sua participação. A quantidade exata de DS pode variar conforme decisão do ancião e o DS coletado no vale.
+            </p>
+
+            <div class="grid grid-cols-3">
+                <div class="reward-tier reward-tier-gold">
+                    <div class="corner-decoration corner-top-right"></div>
+                    <div class="corner-decoration corner-bottom-left"></div>
+                    <div class="icon-container">
+                        <svg class="icon-gold animate-pulse" width="64" height="64" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                    </div>
+                    <div class="reward-content">
+                        <div class="reward-range icon-gold">80-100%</div>
+                        <div class="reward-subtitle" data-i18n="rewards.tier1.subtitle">Participação Exemplar</div>
+                        <div class="reward-divider">
+                            <div class="reward-label" data-i18n="rewards.tier1.label">Recompensa Semanal</div>
+                            <div class="reward-amount" data-i18n="rewards.tier1.amount">Até 20M DS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reward-tier reward-tier-blue">
+                    <div class="corner-decoration corner-top-right"></div>
+                    <div class="corner-decoration corner-bottom-left"></div>
+                    <div class="icon-container">
+                        <svg class="icon-blue animate-pulse" width="64" height="64" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+                    </div>
+                    <div class="reward-content">
+                        <div class="reward-range icon-blue">60-79%</div>
+                        <div class="reward-subtitle" data-i18n="rewards.tier2.subtitle">Participação Ativa</div>
+                        <div class="reward-divider">
+                            <div class="reward-label" data-i18n="rewards.tier2.label">Recompensa Semanal</div>
+                            <div class="reward-amount" data-i18n="rewards.tier2.amount">Até 10M DS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reward-tier reward-tier-purple">
+                    <div class="corner-decoration corner-top-right"></div>
+                    <div class="corner-decoration corner-bottom-left"></div>
+                    <div class="icon-container">
+                        <svg class="icon-purple animate-pulse" width="64" height="64" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></svg>
+                    </div>
+                    <div class="reward-content">
+                        <div class="reward-range icon-purple">30-59%</div>
+                        <div class="reward-subtitle" data-i18n="rewards.tier3.subtitle">Participação Regular</div>
+                        <div class="reward-divider">
+                            <div class="reward-label" data-i18n="rewards.tier3.label">Recompensa Semanal</div>
+                            <div class="reward-amount" data-i18n="rewards.tier3.amount">Até 5M DS</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box" style="margin-top: 2rem;">
+                <div style="display: flex; align-items: start; gap: 0.75rem;">
+                    <div style="margin-top: 0.25rem;">💎</div>
+                    <div>
+                        <p style="font-weight: 600; color: hsl(var(--foreground)); margin-bottom: 0.5rem;" data-i18n="rewards.notes.title">Observações Importantes:</p>
+                        <ul>
+                            <li data-i18n="rewards.notes.note1">As recompensas são distribuídas semanalmente aos membros elegíveis</li>
+                            <li data-i18n="rewards.notes.note2">O valor exato de DS pode variar baseado na coleta do vale e decisão do ancião</li>
+                            <li data-i18n="rewards.notes.note3">Participação abaixo de 30% não é elegível para recompensas</li>
+                            <li data-i18n="rewards.notes.note4">Mantenha alta participação para garantir as melhores recompensas!</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Participation Table -->
+        <div class="stat-card">
+            <h3 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;" data-i18n="table.title">Registro de Participação</h3>
+            <p class="section-description" data-i18n="table.description">Dados detalhados de presença por jogador e tipo de evento com cálculo ponderado em tempo real</p>
+
+            <div class="search-container">
+                <svg class="search-icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" id="searchPlayer" class="search-input" data-i18n-placeholder="table.search">
+            </div>
+
+            <div style="overflow-x: auto; border-radius: var(--radius); border: 1px solid hsl(var(--border));">
+                <table id="playersTable">
+                    <thead>
+                        <tr>
+                            <th>Jogador</th>
+                            <th style="text-align: center;">Participação<br><span style="font-weight: normal; color: hsl(var(--muted-foreground));">Ponderada</span></th>
+                            <th style="text-align: center;">PVP Server<br><span style="font-weight: normal; color: hsl(var(--muted-foreground));">25%</span></th>
+                            <th style="text-align: center;">PVP Torre<br><span style="font-weight: normal; color: hsl(var(--muted-foreground));">10%</span></th>
+                            <th style="text-align: center;">PVP Cima<br><span style="font-weight: normal; color: hsl(var(--muted-foreground));">12%</span></th>
+                            <th style="text-align: center;">PVP Quadrado<br><span style="font-weight: normal; color: hsl(var(--muted-foreground));">12%</span></th>
+                            <th style="text-align: center;">War Vale<br><span style="font-weight: normal; color: hsl(var(--muted-foreground));">20%</span></th>
+                            <th style="text-align: center;">Defesa Cristal<br><span style="font-weight: normal; color: hsl(var(--muted-foreground));">15%</span></th>
+                            <th style="text-align: center;">Scout Ally<br><span style="font-weight: normal; color: hsl(var(--muted-foreground));">3%</span></th>
+                            <th style="text-align: center;">PVE<br><span style="font-weight: normal; color: hsl(var(--muted-foreground));">3%</span></th>
+                            <th style="text-align: center; background: hsl(var(--accent) / 0.2);">⭐ Doações ⭐<br><span style="font-weight: normal; color: hsl(var(--muted-foreground));">5d:15% • 6d:20% • 7d:25%</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="playersTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <p style="text-align: center; color: hsl(var(--muted-foreground)); font-size: 0.875rem; margin-top: 1rem;">
+                <span data-i18n="table.showing">Mostrando</span> <span id="playerCount">0</span> <span data-i18n="table.of">de</span> <span id="totalPlayers">0</span> <span data-i18n="table.players">jogadores</span>
+            </p>
+        </div>
+
+        <!-- Weight Information -->
+        <div class="stat-card">
+            <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;" data-i18n="weights.title">Sistema de Pontuação Ponderada</h3>
+            <div class="weights-grid">
+                <div class="weight-item">
+                    <div class="weight-label">PVP Server</div>
+                    <div class="weight-value">25%</div>
+                    <div class="weight-note">Mínimo: 1x/dia</div>
+                </div>
+                <div class="weight-item">
+                    <div class="weight-label">War Vale</div>
+                    <div class="weight-value">20%</div>
+                    <div class="weight-note">Mínimo: 1x/semana</div>
+                </div>
+                <div class="weight-item">
+                    <div class="weight-label">Defesa Cristal</div>
+                    <div class="weight-value">15%</div>
+                    <div class="weight-note">Mínimo: 1x/semana</div>
+                </div>
+                <div class="weight-item">
+                    <div class="weight-label">PVP Cima</div>
+                    <div class="weight-value" style="color: hsl(var(--secondary));">12%</div>
+                    <div class="weight-note">Quando houver PVP</div>
+                </div>
+                <div class="weight-item">
+                    <div class="weight-label">PVP Quadrado</div>
+                    <div class="weight-value" style="color: hsl(var(--secondary));">12%</div>
+                    <div class="weight-note">Quando houver PVP</div>
+                </div>
+                <div class="weight-item">
+                    <div class="weight-label">PVP Torre</div>
+                    <div class="weight-value" style="color: hsl(var(--secondary));">10%</div>
+                    <div class="weight-note">2-3x/semana se houver</div>
+                </div>
+                <div class="weight-item">
+                    <div class="weight-label">Scout Ally</div>
+                    <div class="weight-value" style="color: hsl(var(--accent));">3%</div>
+                    <div class="weight-note">1x/dia com inimigos</div>
+                </div>
+                <div class="weight-item">
+                    <div class="weight-label">PVE</div>
+                    <div class="weight-value" style="color: hsl(var(--accent));">3%</div>
+                    <div class="weight-note">Atividades PVE</div>
+                </div>
+                <div class="weight-item" style="grid-column: span 2;">
+                    <div class="weight-label">⭐ Doações Recurso do Clã ⭐</div>
+                    <div class="weight-value" style="color: hsl(var(--accent));">Bônus Escalonado</div>
+                    <div class="weight-note">7 dias: 25% • 6 dias: 20% • 5 dias: 15%</div>
+                </div>
+            </div>
+            <div class="info-box" style="margin-top: 1rem;">
+                <p><strong style="color: hsl(var(--foreground));" data-i18n="weights.note.title">Nota:</strong> <span data-i18n="weights.note.text">Os pesos são realocados automaticamente quando eventos condicionais (PVP Cima, Quadrado, Scout) não ocorrem, distribuindo proporcionalmente entre os outros eventos.</span></p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ==================== TRANSLATION SYSTEM ====================
+        const translations = {
+            pt: {
+                "header.subtitle": "Calculadora - Clan NA21",
+                "header.description": "Acompanhe a participação dos membros do clan em todos os eventos e atividades",
+                "calculator.title": "Calculadora em Tempo Real",
+                "calculator.description": "Calcule sua participação ponderada inserindo suas porcentagens em cada evento",
+                "calculator.result": "Participação Ponderada Total",
+                "rewards.title": "Sistema de Recompensas",
+                "rewards.description": "Recompensas semanais baseadas na sua participação. A quantidade exata de DS pode variar conforme decisão do ancião e o DS coletado no vale.",
+                "rewards.tier1.subtitle": "Participação Exemplar",
+                "rewards.tier1.label": "Recompensa Semanal",
+                "rewards.tier1.amount": "Até 20M DS",
+                "rewards.tier2.subtitle": "Participação Ativa",
+                "rewards.tier2.label": "Recompensa Semanal",
+                "rewards.tier2.amount": "Até 10M DS",
+                "rewards.tier3.subtitle": "Participação Regular",
+                "rewards.tier3.label": "Recompensa Semanal",
+                "rewards.tier3.amount": "Até 5M DS",
+                "rewards.notes.title": "Observações Importantes:",
+                "rewards.notes.note1": "As recompensas são distribuídas semanalmente aos membros elegíveis",
+                "rewards.notes.note2": "O valor exato de DS pode variar baseado na coleta do vale e decisão do ancião",
+                "rewards.notes.note3": "Participação abaixo de 30% não é elegível para recompensas",
+                "rewards.notes.note4": "Mantenha alta participação para garantir as melhores recompensas!",
+                "table.title": "Registro de Participação",
+                "table.description": "Dados detalhados de presença por jogador e tipo de evento com cálculo ponderado em tempo real",
+                "table.search": "Buscar jogador...",
+                "table.showing": "Mostrando",
+                "table.of": "de",
+                "table.players": "jogadores",
+                "weights.title": "Sistema de Pontuação Ponderada",
+                "weights.note.title": "Nota:",
+                "weights.note.text": "Os pesos são realocados automaticamente quando eventos condicionais (PVP Cima, Quadrado, Scout) não ocorrem, distribuindo proporcionalmente entre os outros eventos."
+            },
+            es: {
+                "header.subtitle": "Calculadora - Clan NA21",
+                "header.description": "Rastrea la participación de los miembros del clan en todos los eventos y actividades",
+                "calculator.title": "Calculadora en Tiempo Real",
+                "calculator.description": "Calcula tu participación ponderada ingresando tus porcentajes en cada evento",
+                "calculator.result": "Participación Ponderada Total",
+                "rewards.title": "Sistema de Recompensas",
+                "rewards.description": "Recompensas semanales basadas en tu participación. La cantidad exacta de DS puede variar según la decisión del anciano y el DS recolectado en el valle.",
+                "rewards.tier1.subtitle": "Participación Ejemplar",
+                "rewards.tier1.label": "Recompensa Semanal",
+                "rewards.tier1.amount": "Hasta 20M DS",
+                "rewards.tier2.subtitle": "Participación Activa",
+                "rewards.tier2.label": "Recompensa Semanal",
+                "rewards.tier2.amount": "Hasta 10M DS",
+                "rewards.tier3.subtitle": "Participación Regular",
+                "rewards.tier3.label": "Recompensa Semanal",
+                "rewards.tier3.amount": "Hasta 5M DS",
+                "rewards.notes.title": "Observaciones Importantes:",
+                "rewards.notes.note1": "Las recompensas se distribuyen semanalmente a los miembros elegibles",
+                "rewards.notes.note2": "El valor exacto de DS puede variar según la recolección del valle y la decisión del anciano",
+                "rewards.notes.note3": "Participación inferior al 30% no es elegible para recompensas",
+                "rewards.notes.note4": "¡Mantén alta participación para asegurar las mejores recompensas!",
+                "table.title": "Registro de Participación",
+                "table.description": "Datos detallados de asistencia por jugador y tipo de evento con cálculo ponderado en tiempo real",
+                "table.search": "Buscar jugador...",
+                "table.showing": "Mostrando",
+                "table.of": "de",
+                "table.players": "jugadores",
+                "weights.title": "Sistema de Puntuación Ponderada",
+                "weights.note.title": "Nota:",
+                "weights.note.text": "Los pesos se reasignan automáticamente cuando los eventos condicionales (PVP Cima, Cuadrado, Scout) no ocurren, distribuyendo proporcionalmente entre los otros eventos."
+            },
+            en: {
+                "header.subtitle": "Calculator - Clan NA21",
+                "header.description": "Track clan members' participation in all events and activities",
+                "calculator.title": "Real-time Calculator",
+                "calculator.description": "Calculate your weighted participation by entering your percentages for each event",
+                "calculator.result": "Total Weighted Participation",
+                "rewards.title": "Rewards System",
+                "rewards.description": "Weekly rewards based on your participation. The exact amount of DS may vary based on elder's decision and DS collected in the valley.",
+                "rewards.tier1.subtitle": "Exemplary Participation",
+                "rewards.tier1.label": "Weekly Reward",
+                "rewards.tier1.amount": "Up to 20M DS",
+                "rewards.tier2.subtitle": "Active Participation",
+                "rewards.tier2.label": "Weekly Reward",
+                "rewards.tier2.amount": "Up to 10M DS",
+                "rewards.tier3.subtitle": "Regular Participation",
+                "rewards.tier3.label": "Weekly Reward",
+                "rewards.tier3.amount": "Up to 5M DS",
+                "rewards.notes.title": "Important Notes:",
+                "rewards.notes.note1": "Rewards are distributed weekly to eligible members",
+                "rewards.notes.note2": "The exact DS value may vary based on valley collection and elder's decision",
+                "rewards.notes.note3": "Participation below 30% is not eligible for rewards",
+                "rewards.notes.note4": "Maintain high participation to ensure the best rewards!",
+                "table.title": "Participation Record",
+                "table.description": "Detailed attendance data per player and event type with real-time weighted calculation",
+                "table.search": "Search player...",
+                "table.showing": "Showing",
+                "table.of": "of",
+                "table.players": "players",
+                "weights.title": "Weighted Scoring System",
+                "weights.note.title": "Note:",
+                "weights.note.text": "Weights are automatically reallocated when conditional events (PVP Cima, Quadrado, Scout) don't occur, distributing proportionally among other events."
+            }
+        };
+
+        // Initialize language from localStorage or default to 'pt'
+        let currentLanguage = localStorage.getItem('language') || 'pt';
+
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            localStorage.setItem('language', lang);
+            
+            // Update active button
+            document.querySelectorAll('.language-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-lang') === lang) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Update all translatable elements
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+
+            // Update placeholder for search input
+            const searchInput = document.getElementById('searchPlayer');
+            if (searchInput && translations[lang]['table.search']) {
+                searchInput.placeholder = translations[lang]['table.search'];
+            }
+
+            // Update HTML lang attribute
+            document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es-ES' : 'en-US';
+        }
+
+        // Apply language on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            changeLanguage(currentLanguage);
+        });
+
+        // ==================== END TRANSLATION SYSTEM ====================
+
+        // Mock players data
+        const players = [
+            { name: "Cl3opa", attendance: { pvpServer: 80, pvpTorre: 0, pvpCima: 90, pvpQuadrado: 90, warVale: 100, defesaCristal: 0, scoutAlly: 0, pve: 100, doacaoRecursos: 100 } },
+            { name: "BumBumTamTam", attendance: { pvpServer: 100, pvpTorre: 0, pvpCima: 100, pvpQuadrado: 100, warVale: 100, defesaCristal: 100, scoutAlly: 10, pve: 100, doacaoRecursos: 100 } },
+            { name: "メBloodCrossメ", attendance: { pvpServer: 100, pvpTorre: 40, pvpCima: 100, pvpQuadrado: 100, warVale: 100, defesaCristal: 100, scoutAlly: 10, pve: 100, doacaoRecursos: 100 } },
+            { name: "ReyAlex", attendance: { pvpServer: 100, pvpTorre: 50, pvpCima: 100, pvpQuadrado: 90, warVale: 100, defesaCristal: 0, scoutAlly: 0, pve: 80, doacaoRecursos: 80 } },
+            { name: "feluka", attendance: { pvpServer: 100, pvpTorre: 0, pvpCima: 100, pvpQuadrado: 100, warVale: 100, defesaCristal: 0, scoutAlly: 0, pve: 100, doacaoRecursos: 100 } },
+            { name: "kevcito", attendance: { pvpServer: 100, pvpTorre: 50, pvpCima: 100, pvpQuadrado: 100, warVale: 0, defesaCristal: 0, scoutAlly: 0, pve: 100, doacaoRecursos: 80 } },
+            { name: "Adonis 333", attendance: { pvpServer: 100, pvpTorre: 0, pvpCima: 100, pvpQuadrado: 100, warVale: 100, defesaCristal: 100, scoutAlly: 0, pve: 100, doacaoRecursos: 100 } },
+            { name: "sayayin 12", attendance: { pvpServer: 100, pvpTorre: 0, pvpCima: 100, pvpQuadrado: 100, warVale: 100, defesaCristal: 0, scoutAlly: 0, pve: 100, doacaoRecursos: 80 } },
+            { name: "Alb4ph1c4", attendance: { pvpServer: 100, pvpTorre: 0, pvpCima: 100, pvpQuadrado: 50, warVale: 100, defesaCristal: 100, scoutAlly: 0, pve: 100, doacaoRecursos: 100 } },
+            { name: "RB LTDA", attendance: { pvpServer: 80, pvpTorre: 0, pvpCima: 50, pvpQuadrado: 50, warVale: 100, defesaCristal: 0, scoutAlly: 0, pve: 80, doacaoRecursos: 0 } },
+            { name: "ivanbulman19", attendance: { pvpServer: 50, pvpTorre: 0, pvpCima: 100, pvpQuadrado: 50, warVale: 100, defesaCristal: 100, scoutAlly: 0, pve: 40, doacaoRecursos: 100 } },
+            { name: "ALEXBJ22", attendance: { pvpServer: 80, pvpTorre: 0, pvpCima: 100, pvpQuadrado: 80, warVale: 100, defesaCristal: 100, scoutAlly: 0, pve: 50, doacaoRecursos: 80 } },
+            { name: "Chaos Sunny", attendance: { pvpServer: 10, pvpTorre: 0, pvpCima: 10, pvpQuadrado: 0, warVale: 100, defesaCristal: 0, scoutAlly: 0, pve: 40, doacaoRecursos: 0 } }
+        ];
+
+        // Calculate weighted participation
+        function calculateWeightedParticipation(attendance) {
+            const weights = {
+                pvpServer: 25,
+                pvpTorre: 10,
+                pvpCima: 12,
+                pvpQuadrado: 12,
+                warVale: 20,
+                defesaCristal: 15,
+                scoutAlly: 3,
+                pve: 3,
+                doacaoRecursos: 25
+            };
+
+            const weightedSum = 
+                (attendance.pvpServer / 100) * weights.pvpServer +
+                (attendance.pvpTorre / 100) * weights.pvpTorre +
+                (attendance.pvpCima / 100) * weights.pvpCima +
+                (attendance.pvpQuadrado / 100) * weights.pvpQuadrado +
+                (attendance.warVale / 100) * weights.warVale +
+                (attendance.defesaCristal / 100) * weights.defesaCristal +
+                (attendance.scoutAlly / 100) * weights.scoutAlly +
+                (attendance.pve / 100) * weights.pve +
+                (attendance.doacaoRecursos / 100) * weights.doacaoRecursos;
+
+            return Math.round(weightedSum);
+        }
+
+        // Get percentage color class
+        function getPercentageColor(percentage) {
+            if (percentage >= 80) return 'percentage-high';
+            if (percentage >= 50) return 'percentage-medium';
+            return 'percentage-low';
+        }
+
+        // Calculate participation from counts
+        function calculateFromCounts() {
+            const maxCounts = {
+                pvpServer: 7,
+                pvpTorre: 3,
+                pvpCima: 7,
+                pvpQuadrado: 7,
+                warVale: 1,
+                defesaCristal: 1,
+                scoutAlly: 7,
+                pve: 7,
+                doacaoDias: 7
+            };
+
+            const counts = {
+                pvpServer: parseInt(document.getElementById('pvpServer').value) || 0,
+                pvpTorre: parseInt(document.getElementById('pvpTorre').value) || 0,
+                pvpCima: parseInt(document.getElementById('pvpCima').value) || 0,
+                pvpQuadrado: parseInt(document.getElementById('pvpQuadrado').value) || 0,
+                warVale: parseInt(document.getElementById('warVale').value) || 0,
+                defesaCristal: parseInt(document.getElementById('defesaCristal').value) || 0,
+                scoutAlly: parseInt(document.getElementById('scoutAlly').value) || 0,
+                pve: parseInt(document.getElementById('pve').value) || 0,
+                doacaoDias: parseInt(document.getElementById('doacaoDias').value) || 0
+            };
+
+            let doacaoBonus = 0;
+            if (counts.doacaoDias >= 7) doacaoBonus = 100;
+            else if (counts.doacaoDias >= 6) doacaoBonus = 80;
+            else if (counts.doacaoDias >= 5) doacaoBonus = 60;
+
+            const attendance = {
+                pvpServer: Math.round((counts.pvpServer / maxCounts.pvpServer) * 100),
+                pvpTorre: Math.round((counts.pvpTorre / maxCounts.pvpTorre) * 100),
+                pvpCima: Math.round((counts.pvpCima / maxCounts.pvpCima) * 100),
+                pvpQuadrado: Math.round((counts.pvpQuadrado / maxCounts.pvpQuadrado) * 100),
+                warVale: Math.round((counts.warVale / maxCounts.warVale) * 100),
+                defesaCristal: Math.round((counts.defesaCristal / maxCounts.defesaCristal) * 100),
+                scoutAlly: Math.round((counts.scoutAlly / maxCounts.scoutAlly) * 100),
+                pve: Math.round((counts.pve / maxCounts.pve) * 100),
+                doacaoRecursos: doacaoBonus
+            };
+
+            const total = calculateWeightedParticipation(attendance);
+            document.getElementById('totalParticipation').textContent = total + '%';
+        }
+
+        // Render players table
+        function renderPlayersTable(filterText = '') {
+            const tbody = document.getElementById('playersTableBody');
+            const filtered = players.filter(p => 
+                p.name.toLowerCase().includes(filterText.toLowerCase())
+            );
+
+            const sorted = [...filtered].sort((a, b) => {
+                const aTotal = calculateWeightedParticipation(a.attendance);
+                const bTotal = calculateWeightedParticipation(b.attendance);
+                return bTotal - aTotal;
+            });
+
+            tbody.innerHTML = sorted.map(player => {
+                const total = calculateWeightedParticipation(player.attendance);
+                const avatar = player.name.charAt(0).toUpperCase();
+                
+                let doacaoLabel = '';
+                if (player.attendance.doacaoRecursos >= 100) doacaoLabel = '🏆 7 dias';
+                else if (player.attendance.doacaoRecursos >= 60) doacaoLabel = '6 dias';
+                else if (player.attendance.doacaoRecursos > 0) doacaoLabel = '5 dias';
+
+                return `
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center;">
+                                <span class="player-avatar">${avatar}</span>
+                                ${player.name}
+                            </div>
+                        </td>
+                        <td style="text-align: center;"><span class="${getPercentageColor(total)}" style="font-weight: bold; font-size: 1.125rem;">${total}%</span></td>
+                        <td style="text-align: center;"><span class="${getPercentageColor(player.attendance.pvpServer)}" style="font-weight: 600;">${player.attendance.pvpServer}%</span></td>
+                        <td style="text-align: center;"><span class="${getPercentageColor(player.attendance.pvpTorre)}" style="font-weight: 600;">${player.attendance.pvpTorre}%</span></td>
+                        <td style="text-align: center;"><span class="${getPercentageColor(player.attendance.pvpCima)}" style="font-weight: 600;">${player.attendance.pvpCima}%</span></td>
+                        <td style="text-align: center;"><span class="${getPercentageColor(player.attendance.pvpQuadrado)}" style="font-weight: 600;">${player.attendance.pvpQuadrado}%</span></td>
+                        <td style="text-align: center;"><span class="${getPercentageColor(player.attendance.warVale)}" style="font-weight: 600;">${player.attendance.warVale}%</span></td>
+                        <td style="text-align: center;"><span class="${getPercentageColor(player.attendance.defesaCristal)}" style="font-weight: 600;">${player.attendance.defesaCristal}%</span></td>
+                        <td style="text-align: center;"><span class="${getPercentageColor(player.attendance.scoutAlly)}" style="font-weight: 600;">${player.attendance.scoutAlly}%</span></td>
+                        <td style="text-align: center;"><span class="${getPercentageColor(player.attendance.pve)}" style="font-weight: 600;">${player.attendance.pve}%</span></td>
+                        <td style="text-align: center; background: hsl(var(--accent) / 0.1);">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                                <span class="${getPercentageColor(player.attendance.doacaoRecursos)}" style="font-weight: bold;">${player.attendance.doacaoRecursos}%</span>
+                                ${doacaoLabel ? `<span style="font-size: 0.75rem; color: ${player.attendance.doacaoRecursos >= 100 ? 'hsl(var(--accent))' : 'hsl(var(--muted-foreground))'}">${doacaoLabel}</span>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('playerCount').textContent = sorted.length;
+            document.getElementById('totalPlayers').textContent = players.length;
+        }
+
+        // Event listeners
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', calculateFromCounts);
+        });
+
+        document.getElementById('searchPlayer').addEventListener('input', (e) => {
+            renderPlayersTable(e.target.value);
+        });
+
+        // Initial render
+        calculateFromCounts();
+        renderPlayersTable();
+    </script>
+</body>
+</html>
